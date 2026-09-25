@@ -1,0 +1,12 @@
+services:
+    notification-hub:
+        image: notification-hub
+        build:
+            context: .
+            args:
+                INSTALL_XDEBUG: "true"
+        container_name: notification-hub
+        ports:
+            - "8088:80"
+        volumes:
+            - ./:/var/www/html
