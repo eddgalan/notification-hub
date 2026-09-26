@@ -11,25 +11,12 @@ class SendNotificationJob implements ShouldQueue
     use Queueable;
 
     /**
-     * @var array $channels
-     */
-    private array $channels;
-
-    /**
-     * @var array $payload
-     */
-    private array $payload;
-
-    /**
      * Create a new job instance.
      */
     public function __construct(
-        array $channels,
-        array $payload
-    ) {
-        $this->channels = $channels;
-        $this->payload = $payload;
-    }
+        public readonly string $channel,
+        public readonly array $payload
+    ) {}
 
     /**
      * Execute the job.
@@ -38,7 +25,7 @@ class SendNotificationJob implements ShouldQueue
         NotificationDispatcher $dispatcher,
     ): void {
         $dispatcher->dispatch(
-            $this->channels,
+            $this->channel,
             $this->payload
         );
     }

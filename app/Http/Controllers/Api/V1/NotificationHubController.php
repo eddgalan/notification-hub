@@ -17,10 +17,12 @@ class NotificationHubController extends Controller
     {
         $data = $request->validated();
 
-        SendNotificationJob::dispatch(
-            $data['channels'],
-            $data['payload'],
-        );
+        foreach ($data['channels'] as $channel) {
+            SendNotificationJob::dispatch(
+                $channel,
+                $data['payload'],
+            );
+        }
 
         return response()->json([
             'message' => 'Notification accepted',

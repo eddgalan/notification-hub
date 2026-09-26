@@ -2,31 +2,26 @@
 
 namespace App\Notifications;
 
-class NotificationDispatcher
+readonly class NotificationDispatcher
 {
-    /**
-     * @var NotificationChannelPool $channelPool
-     */
-    private NotificationChannelPool $channelPool;
-
     /**
      * @param NotificationChannelPool $channelPool
      */
     public function __construct(
-        NotificationChannelPool $channelPool
-    ) {
-        $this->channelPool = $channelPool;
-    }
+        private NotificationChannelPool $channelPool
+    ) {}
 
     /**
-     * Sends a payload to a list of specified channels.
+     * Dispatches a payload to the specified channel.
+     *
+     * @param string $channelName
+     * @param array $payload
+     * @return void
      */
-    public function dispatch(array $channels, array $payload): void
+    public function dispatch(string $channelName, array $payload): void
     {
-        foreach ($channels as $channelName) {
-            $channel = $this->channelPool->get($channelName);
+        $channel = $this->channelPool->get($channelName);
 
-            $channel->send($payload);
-        }
+        $channel->send($payload);
     }
 }
