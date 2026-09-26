@@ -22,7 +22,7 @@ class DispatchNotificationRequest extends FormRequest
     {
         if (! $this->has('channels')) {
             $this->merge([
-                'channels' => ['email'],
+                'channels' => ['email', 'telegram'],
             ]);
         }
     }
@@ -36,7 +36,7 @@ class DispatchNotificationRequest extends FormRequest
     {
         return [
             'channels' => ['required', 'array', 'min:1'],
-            'channels.*' => ['required', 'string', 'in:email'],
+            'channels.*' => ['required', 'string', 'in:email,telegram'],
             'payload' => ['required', 'array'],
             'payload.user_id' => ['required', 'integer', 'exists:users,id'],
             'payload.email' => ['required', 'email', 'max:255'],
