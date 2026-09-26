@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Exceptions\Notifications\NonRetryableNotificationException;
 use App\Notifications\NotificationDispatcher;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
@@ -12,8 +13,6 @@ class SendNotificationJob implements ShouldQueue
 
     /**
      * Maximum number of attempts.
-     *
-     * @var int $tries
      */
     public int $tries = 4;
 
@@ -31,10 +30,14 @@ class SendNotificationJob implements ShouldQueue
     public function handle(
         NotificationDispatcher $dispatcher,
     ): void {
-        $dispatcher->dispatch(
-            $this->channel,
-            $this->payload
-        );
+        try {
+            $dispatcher->dispatch(
+                $this->channel,
+                $this->payload
+            );
+        } catch (NonRetryableNotificationException $e) {
+            $this->fail($e);
+        }
     }
 
     /**
