@@ -1,58 +1,238 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Notification Hub
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Notification Hub is a Laravel API for dispatching notifications through different channels. The current Docker setup runs the application with PHP 8.4 and Apache, exposing Laravel through the `public/` directory.
 
-## About Laravel
+## Requirements
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- Docker
+- Docker Compose
+- Git
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+Optional, only if you need to build frontend assets outside Docker:
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+- Node.js
+- npm
 
-## Learning Laravel
+## Docker Services
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+The project includes one Docker service:
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+| Service | Container | Purpose | URL |
+| --- | --- | --- | --- |
+| `notification-hub` | `notification-hub` | PHP 8.4 + Apache | `http://localhost:8088` |
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
+The container mounts the project directory into `/var/www/html`, so code changes on your machine are reflected inside the container.
 
-## Agentic Development
+## Installation With Docker
 
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+Clone the repository and enter the project directory:
 
-```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+```sh
+git clone <repository-url>
+cd notification-hub
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+Create the environment file:
 
-## Contributing
+```sh
+cp .env.example .env
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+Build and start the container:
 
-## Code of Conduct
+```sh
+docker compose up -d --build
+```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+Install PHP dependencies inside the container:
 
-## Security Vulnerabilities
+```sh
+docker compose exec notification-hub composer install
+```
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+Generate the Laravel application key:
 
-## License
+```sh
+docker compose exec notification-hub php artisan key:generate
+```
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+Create the SQLite database file if it does not exist:
+
+```sh
+docker compose exec notification-hub touch database/database.sqlite
+```
+
+Run the database migrations:
+
+```sh
+docker compose exec notification-hub php artisan migrate
+```
+
+The application should now be available at:
+
+```txt
+http://localhost:8088
+```
+
+## Environment
+
+The default `.env.example` uses SQLite:
+
+```dotenv
+DB_CONNECTION=sqlite
+QUEUE_CONNECTION=database
+```
+
+For local Docker usage, update `APP_URL` to match the exposed port:
+
+```dotenv
+APP_URL=http://localhost:8088
+```
+
+Because the queue uses the database driver, make sure migrations have been executed before dispatching notification jobs.
+
+## Queue Worker
+
+Notification dispatching uses queued jobs. Start a worker in a separate terminal:
+
+```sh
+docker compose exec notification-hub php artisan queue:work
+```
+
+For development, you can stop the worker with `Ctrl+C`.
+
+## Useful Docker Commands
+
+Start the application:
+
+```sh
+docker compose up -d
+```
+
+Stop the application:
+
+```sh
+docker compose down
+```
+
+Open a shell inside the container:
+
+```sh
+docker compose exec notification-hub bash
+```
+
+Run Artisan commands:
+
+```sh
+docker compose exec notification-hub php artisan <command>
+```
+
+Run tests:
+
+```sh
+docker compose exec notification-hub php artisan test
+```
+
+Format PHP code:
+
+```sh
+docker compose exec notification-hub vendor/bin/pint
+```
+
+View Laravel logs:
+
+```sh
+docker compose exec notification-hub tail -f storage/logs/laravel.log
+```
+
+## API Endpoints
+
+The application exposes these API routes:
+
+| Method | Endpoint | Name |
+| --- | --- | --- |
+| `POST` | `/api/login` | `login` |
+| `POST` | `/api/v1/notifications/dispatch` | `v1.notifications.dispatch` |
+
+The notification dispatch endpoint is protected with Sanctum authentication.
+
+Example notification payload:
+
+```json
+{
+    "event_type": "USER_WELCOME",
+    "channels": [
+        "email",
+        "telegram"
+    ],
+    "payload": {
+        "user_id": "1",
+        "email": "dev@example.com",
+        "message": "Bienvenido a Notification Hub"
+    }
+}
+```
+
+cURL:
+
+```bash
+curl --location 'http://localhost:8088/api/v1/notifications/dispatch?XDEBUG_SESSION_START=PHPSTORM' \
+--header 'Accept: application/json' \
+--header 'Content-Type: application/json' \
+--header 'Authorization: Bearer ' \
+--data-raw '{
+"event_type": "USER_WELCOME",
+"channels": [
+"email",
+"telegram"
+],
+"payload": {
+"user_id": "1",
+"email": "dev@example.com",
+"message": "Bienvenido a Notification Hub"
+}
+}'
+```
+
+## Xdebug
+
+The Docker image installs Xdebug because `docker-compose.yml` builds with:
+
+```yaml
+args:
+    INSTALL_XDEBUG: "true"
+```
+
+The Xdebug configuration is located at:
+
+```txt
+docker/xdebug.ini
+```
+
+By default it uses `host.docker.internal`, which works on Docker Desktop for macOS and Windows. For Linux, update the file to use the Docker bridge IP shown in the existing comment.
+
+## Troubleshooting
+
+If the app shows an error about a missing application key, run:
+
+```sh
+docker compose exec notification-hub php artisan key:generate
+```
+
+If database tables are missing, run:
+
+```sh
+docker compose exec notification-hub php artisan migrate
+```
+
+If queued notifications are not being processed, make sure the queue worker is running:
+
+```sh
+docker compose exec notification-hub php artisan queue:work
+```
+
+If dependencies are missing after cloning or rebuilding the container, run:
+
+```sh
+docker compose exec notification-hub composer install
+```
