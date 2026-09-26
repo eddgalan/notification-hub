@@ -4,25 +4,11 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\DispatchNotificationRequest;
-use App\Notifications\NotificationDispatcher;
+use App\Jobs\SendNotificationJob;
 use Illuminate\Http\JsonResponse;
 
 class NotificationHubController extends Controller
 {
-    /**
-     * @var NotificationDispatcher
-     */
-    private NotificationDispatcher $dispatcher;
-
-    /**
-     * @param NotificationDispatcher $dispatcher
-     */
-    public function __construct(
-        NotificationDispatcher $dispatcher
-    ) {
-        $this->dispatcher = $dispatcher;
-    }
-
     /**
      * @param DispatchNotificationRequest $request
      * @return JsonResponse
@@ -31,9 +17,9 @@ class NotificationHubController extends Controller
     {
         $data = $request->validated();
 
-        $this->dispatcher->dispatch(
+        SendNotificationJob::dispatch(
             $data['channels'],
-            $data['payload']
+            $data['payload'],
         );
 
         return response()->json([
