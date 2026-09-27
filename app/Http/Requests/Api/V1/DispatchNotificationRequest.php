@@ -36,7 +36,7 @@ class DispatchNotificationRequest extends FormRequest
     {
         return [
             'channels' => ['required', 'array', 'min:1'],
-            'channels.*' => ['required', 'string', 'in:email,telegram'],
+            'channels.*' => ['required', 'string', 'in:email,telegram,sms'],
             'payload' => ['required', 'array'],
             'payload.user_id' => ['required', 'integer', 'exists:users,id'],
             'payload.email' => ['required', 'email', 'max:255'],
